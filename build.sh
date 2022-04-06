@@ -1,7 +1,13 @@
 #!/bin/bash
 
 workdir=$(dirname $(realpath $0))
-version=$(cat version 2>/dev/null)
+
+if [ $# == 1 ]; then
+  version="$1"
+else
+  version=$(cat version 2>/dev/null)
+fi
+
 bin_name="polaris-console"
 if [ ${GOOS} == "" ]; then
   GOOS=$(go env GOOS)

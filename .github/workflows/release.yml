@@ -28,7 +28,11 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
-        
+
+    - name: Get version
+      id: get_version
+      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+         
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
@@ -39,9 +43,10 @@ jobs:
       id: build
       env:
         GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}    
+        GOARCH: ${{ matrix.goarch }}  
+        VERSION: ${{ steps.get_version.outputs.VERSION }}  
       run: |
-        bash build.sh
+        bash build.sh ${VERSION}
         PACKAGE_NAME=$(ls | grep polaris-console-release*.zip | sed -n '1p')
         echo ::set-output name=name::${PACKAGE_NAME}
         
