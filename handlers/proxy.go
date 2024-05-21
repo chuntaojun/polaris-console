@@ -91,18 +91,20 @@ func ReverseProxyForLogin(polarisServer *bootstrap.PolarisServer, conf *bootstra
 				return err
 			}
 			if val, ok := loginResp["loginResponse"].(map[string]interface{}); ok {
-				if token := val["token"]; token != "" {
-					val["token"] = "******" // 避免前端出错,保证返回, 但隐藏现有的token
-					body, err = json.Marshal(loginResp)
-					if err != nil {
-						return err
+				if conf.WebServer.JWT.Enable {
+					if token := val["token"]; token != "" {
+						val["token"] = "******" // 避免前端出错,保证返回, 但隐藏现有的token
+						body, err = json.Marshal(loginResp)
+						if err != nil {
+							return err
+						}
+						if err = refreshJWT(c, val["user_id"].(string), token.(string), conf); err != nil {
+							return err
+						}
+						resp.Header["Content-Length"] = []string{fmt.Sprint(len(body))}
+						resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+						return nil
 					}
-					if err = refreshJWT(c, val["user_id"].(string), token.(string), conf); err != nil {
-						return err
-					}
-					resp.Header["Content-Length"] = []string{fmt.Sprint(len(body))}
-					resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-					return nil
 				}
 			}
 			resp.Body = ioutil.NopCloser(bytes.NewBuffer(body))
@@ -151,13 +153,15 @@ func verifyAccessPermission(c *gin.Context, conf *bootstrap.Config) bool {
 		return false
 	}
 
-	// 只有全部校验通过之后,请求才会自动续期jwtToken
-	if err = refreshJWT(c, userID, token, conf); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code": http.StatusInternalServerError,
-			"info": "generate jwt token occurs error",
-		})
-		return false
+	if conf.WebServer.JWT.Enable {
+		// 只有全部校验通过之后,请求才会自动续期jwtToken
+		if err = refreshJWT(c, userID, token, conf); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code": http.StatusInternalServerError,
+				"info": "generate jwt token occurs error",
+			})
+			return false
+		}
 	}
 	return true
 }
@@ -200,6 +204,12 @@ type jwtClaims struct {
 
 // parseJWTThenSetToken 从jwt中抽取userID 和 token
 func parseJWTThenSetToken(c *gin.Context, conf *bootstrap.Config) (string, string, error) {
+	if !conf.WebServer.JWT.Enable {
+		userId := c.Request.Header.Get("x-polaris-user")
+		token := c.Request.Header.Get("x-polaris-token")
+		return userId, token, nil
+	}
+
 	receiveUserId := c.Request.Header.Get("x-polaris-user")
 
 	jwtCookie, _ := c.Request.Cookie("jwt")

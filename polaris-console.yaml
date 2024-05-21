@@ -9,6 +9,7 @@ webServer:
   listenIP: "0.0.0.0"
   listenPort: 8080
   jwt:
+    enable: true
     secretKey: "polarismesh@2021"
     expired: 1800
   namingV1URL: "/naming/v1"

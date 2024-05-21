@@ -79,6 +79,8 @@ type WebServer struct {
 
 // JWT jwtToken 相关的配置
 type JWT struct {
+	// Enable 是否开启 JWT 保护 polaris-token 的能力
+	Enable bool `yaml:"enable"`
 	// 参与jwt运算的key
 	SecretKey string `yaml:"secretKey"`
 	// 过期时间, 单位为秒
