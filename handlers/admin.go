@@ -83,18 +83,19 @@ func ReverseHandleAdminUserExist(polarisServer *bootstrap.PolarisServer, conf *b
 				if err := resp.Body.Close(); err != nil {
 					return err
 				}
-				body := []byte(`
+				body := `
 				{
 					"code": 200000,
 					"info": "success",
 					"user": {
-					    "name": "polaris"
+					    "name": "%s"
 					}
 				}
-				`)
+				`
+				body = fmt.Sprintf(body, conf.WebServer.MainUser)
 				resp.StatusCode = http.StatusOK
 				resp.Header["Content-Length"] = []string{fmt.Sprint(len(body))}
-				resp.Body = io.NopCloser(bytes.NewReader(body))
+				resp.Body = io.NopCloser(bytes.NewReader([]byte(body)))
 			}
 			return nil
 		}}
